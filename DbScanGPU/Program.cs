@@ -76,12 +76,7 @@ namespace DbScanGPU
         {
             const int NumberOfIterations = 100;
             Point3D[] readPoints = getPointsFromFile("testpoints.csv");
-            //int NumberOfPixels = 1000; // int.Parse(args[0]);
-
-            //Point3D[] randomlyDistributedPoints = getRandomNormallyDistributedPoints(NumberOfPixels);
             int NumberOfPixels = readPoints.Length;
-            // NOTE: gpuRet is the SAME array each time, it's just overwritten. 
-            // this means it is NOT thread safe. 
 
             unsafe
             {
