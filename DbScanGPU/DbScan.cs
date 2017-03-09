@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,8 +9,9 @@ namespace DbScanGPU
 {
     public static class DbScan
     {
-        public static int[][] GetNeighbors(Point3D[] points, double radius)
+        public static int[][] GetNeighbors(Stopwatch sw, Point3D[] points, double radius)
         {
+            sw.Start(); 
             int[][] neighbors = new int[points.Length][];
             for (int i = 0; i < points.Length; i++)
             {
@@ -40,6 +42,8 @@ namespace DbScanGPU
                     }
                 }
             });
+            sw.Stop(); 
+
             return neighbors;
         }
     }
