@@ -11,7 +11,10 @@ namespace DbScanGPU
     {
         public static int[][] GetNeighbors(Stopwatch sw, Point3D[] points, double radius)
         {
-            sw.Start(); 
+            if(sw!=null)
+            {
+                sw.Start();
+            }
             int[][] neighbors = new int[points.Length][];
             for (int i = 0; i < points.Length; i++)
             {
@@ -42,7 +45,11 @@ namespace DbScanGPU
                     }
                 }
             });
-            sw.Stop(); 
+
+            if(sw != null)
+            {
+                sw.Stop();
+            }
 
             return neighbors;
         }

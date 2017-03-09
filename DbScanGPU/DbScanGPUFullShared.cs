@@ -84,7 +84,10 @@ namespace DbScanGPU
         public static unsafe int* GetNeighbors(Stopwatch sw, Point3D[] points, int pointsLength, double radius)
         {
             //Console.WriteLine($"{_pointBuffer[10].X}, {_pointBuffer[10].Y}, {_pointBuffer[10].Z}");
-            sw.Start(); 
+            if(sw != null)
+            {
+                sw.Start();
+            }
 
             IntPtr mappedPtr2 = _queue.Map(_point3DBuffer,
                 true, ComputeMemoryMappingFlags.Write,
@@ -110,7 +113,10 @@ namespace DbScanGPU
                 0, pointsLength * pointsLength, null);
             _queue.Unmap(_neighbors, ref mappedPtr, null);
 
-            sw.Stop(); 
+            if(sw!=null)
+            {
+                sw.Stop();
+            }
             return _preBuffer;
         }
     }

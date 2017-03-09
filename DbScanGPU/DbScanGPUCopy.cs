@@ -1,6 +1,7 @@
 ﻿using Cloo;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -41,8 +42,13 @@ namespace DbScanGPU
             }
         }
 
-        public static int[] GetNeighbors(Point3D[] points, double radius)
+        public static int[] GetNeighbors(Stopwatch sw, Point3D[] points, double radius)
         {
+            if(sw != null)
+            {
+                sw.Start(); 
+            }
+
             int[] ret = new int[points.Length * points.Length]; 
             ComputeBuffer<int> neighbors = new ComputeBuffer<int>(
                 _context,
@@ -72,6 +78,11 @@ namespace DbScanGPU
                 }
             }
             _queue.Finish(); 
+
+            if(sw!=null)
+            {
+                sw.Stop(); 
+            }
 
             return ret;
         }

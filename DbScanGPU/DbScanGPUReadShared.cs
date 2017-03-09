@@ -1,6 +1,7 @@
 ﻿using Cloo;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -70,8 +71,13 @@ namespace DbScanGPU
             return _pointBuffer;
         }
 
-        public static unsafe int* GetNeighbors(Point3D[] points, int pointsLength, double radius)
+        public static unsafe int* GetNeighbors(Stopwatch sw, Point3D[] points, int pointsLength, double radius)
         {
+            if(sw!=null)
+            {
+                sw.Start(); 
+            }
+
             ComputeBuffer<Point3D> point3DBuffer = new ComputeBuffer<Point3D>(
                 _context,
                 ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.CopyHostPointer,
@@ -90,6 +96,11 @@ namespace DbScanGPU
                 true, ComputeMemoryMappingFlags.Read,
                 0, pointsLength * pointsLength, null);
             _queue.Unmap(_neighbors, ref mappedPtr, null);
+
+            if(sw!=null)
+            {
+                sw.Stop(); 
+            }
 
             return _preBuffer;
         }

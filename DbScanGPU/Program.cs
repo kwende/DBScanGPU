@@ -58,39 +58,54 @@ namespace DbScanGPU
             return ret;
         }
 
+        static Point3D[] ShufflePoints(Point3D[] allPoints)
+        {
+            Random rand = new Random();
+
+            Point3D[] ret = allPoints.OrderBy(n => rand.Next()).Take(rand.Next(800, allPoints.Length)).ToArray();
+            for (int c = 0; c < ret.Length; c++)
+            {
+                ret[c].X += rand.Next(-10, 10);
+                ret[c].Y += rand.Next(-10, 10);
+                ret[c].Z += rand.Next(-10, 10);
+            }
+            return ret;
+        }
+
         static void Main(string[] args)
         {
-            const int NumberOfIterations = 1;
-            Point3D[] randomlyDistributedPoints = getPointsFromFile("testpoints.csv");
+            const int NumberOfIterations = 100;
+            Point3D[] readPoints = getPointsFromFile("testpoints.csv");
             //int NumberOfPixels = 1000; // int.Parse(args[0]);
 
             //Point3D[] randomlyDistributedPoints = getRandomNormallyDistributedPoints(NumberOfPixels);
-            int NumberOfPixels = randomlyDistributedPoints.Length;
+            int NumberOfPixels = readPoints.Length;
             // NOTE: gpuRet is the SAME array each time, it's just overwritten. 
             // this means it is NOT thread safe. 
 
             unsafe
             {
-                DbScanGPUFullShared.Initialize(randomlyDistributedPoints.Length);
-                DbScanGPUCopy.Initialize(randomlyDistributedPoints.Length);
-                DbScanGPUShared.Initialize(randomlyDistributedPoints.Length);
+                DbScanGPUFullShared.Initialize(readPoints.Length);
+                DbScanGPUCopy.Initialize(readPoints.Length);
+                DbScanGPUShared.Initialize(readPoints.Length);
 
-                //int* gpuRet = DbScanGPUFullShared.GetNeighbors(randomlyDistributedPoints, randomlyDistributedPoints.Length, 100);
-                //int[] gpuRet2 = DbScanGPUCopy.GetNeighbors(randomlyDistributedPoints, 100);
-                //int* gpuRet3 = DbScanGPUShared.GetNeighbors(randomlyDistributedPoints, randomlyDistributedPoints.Length, 100);
-                //int[][] cpuRet = DbScan.GetNeighbors(randomlyDistributedPoints, 100);
+                // uncomment to test. 
+                int* gpuRet = DbScanGPUFullShared.GetNeighbors(null, readPoints, readPoints.Length, 100);
+                int[] gpuRet2 = DbScanGPUCopy.GetNeighbors(null, readPoints, 100);
+                int* gpuRet3 = DbScanGPUShared.GetNeighbors(null, readPoints, readPoints.Length, 100);
+                int[][] cpuRet = DbScan.GetNeighbors(null, readPoints, 100);
 
-                //for (int y = 0, i = 0; y < randomlyDistributedPoints.Length; y++)
-                //{
-                //    for (int x = 0; x < randomlyDistributedPoints.Length; x++, i++)
-                //    {
-                //        if (gpuRet[i] != cpuRet[y][x] || gpuRet2[i] != cpuRet[y][x] || gpuRet3[i] != cpuRet[y][x])
-                //        {
-                //            throw new Exception(
-                //                $"Expected {cpuRet[y][x]}, got {gpuRet[i]}");
-                //        }
-                //    }
-                //}
+                for (int y = 0, i = 0; y < readPoints.Length; y++)
+                {
+                    for (int x = 0; x < readPoints.Length; x++, i++)
+                    {
+                        if (gpuRet[i] != cpuRet[y][x] || gpuRet2[i] != cpuRet[y][x] || gpuRet3[i] != cpuRet[y][x])
+                        {
+                            throw new Exception(
+                                $"Expected {cpuRet[y][x]}, got {gpuRet[i]}");
+                        }
+                    }
+                }
             }
 
             Random rand = new Random();
@@ -99,46 +114,44 @@ namespace DbScanGPU
             {
                 for (int c = 0; c < NumberOfIterations; c++)
                 {
-                    randomlyDistributedPoints = randomlyDistributedPoints.OrderBy(n => rand.Next()).ToArray();
-                    DbScanGPUFullShared.GetNeighbors(fullSharedTime, randomlyDistributedPoints, randomlyDistributedPoints.Length, 100);
+                    Point3D[] pointsToInspect = ShufflePoints(readPoints);
+                    DbScanGPUFullShared.GetNeighbors(fullSharedTime, pointsToInspect, pointsToInspect.Length, 100);
                 }
             }
 
             Stopwatch cpuTime = new Stopwatch();
             for (int c = 0; c < NumberOfIterations; c++)
             {
-                randomlyDistributedPoints = randomlyDistributedPoints.OrderBy(n => rand.Next()).ToArray();
-                DbScan.GetNeighbors(cpuTime, randomlyDistributedPoints, 100);
+                Point3D[] pointsToInspect = ShufflePoints(readPoints);
+                DbScan.GetNeighbors(cpuTime, pointsToInspect, 100);
             }
 
-            //Stopwatch copyTime = new Stopwatch();
-            //copyTime.Start();
-            //for (int c = 0; c < NumberOfIterations; c++)
-            //{
-            //    DbScanGPUCopy.GetNeighbors(randomlyDistributedPoints, 100);
-            //}
-            //copyTime.Stop();
+            Stopwatch copyTime = new Stopwatch();
+            for (int c = 0; c < NumberOfIterations; c++)
+            {
+                Point3D[] pointsToInspect = ShufflePoints(readPoints);
+                DbScanGPUCopy.GetNeighbors(copyTime, pointsToInspect, 100);
+            }
 
-            //Stopwatch readSharedTime = new Stopwatch();
-            //readSharedTime.Start();
-            //unsafe
-            //{
-            //    for (int c = 0; c < NumberOfIterations; c++)
-            //    {
-            //        DbScanGPUShared.GetNeighbors(randomlyDistributedPoints, randomlyDistributedPoints.Length, 100);
-            //    }
-            //}
-            //readSharedTime.Stop();
+            Stopwatch readSharedTime = new Stopwatch();
+            unsafe
+            {
+                for (int c = 0; c < NumberOfIterations; c++)
+                {
+                    Point3D[] pointsToInspect = ShufflePoints(readPoints);
+                    DbScanGPUShared.GetNeighbors(readSharedTime, pointsToInspect, pointsToInspect.Length, 100);
+                }
+            }
 
             Console.WriteLine($"# of points {NumberOfPixels}");
-            //Console.WriteLine("GPU Read Shared: " + readSharedTime.ElapsedMilliseconds / (NumberOfIterations * 1.0f));
+            Console.WriteLine("GPU Read Shared: " + readSharedTime.ElapsedMilliseconds / (NumberOfIterations * 1.0f));
             Console.WriteLine("GPU Full Shared: " + fullSharedTime.ElapsedMilliseconds / (NumberOfIterations * 1.0f));
-            //Console.WriteLine("GPU Copy: " + copyTime.ElapsedMilliseconds / (NumberOfIterations * 1.0f));
+            Console.WriteLine("GPU Copy: " + copyTime.ElapsedMilliseconds / (NumberOfIterations * 1.0f));
             Console.WriteLine("CPU: " + cpuTime.ElapsedMilliseconds / (NumberOfIterations * 1.0f));
             Console.WriteLine("=========================");
-            //Console.WriteLine($"GPU shared is {cpuTime.ElapsedMilliseconds / (readSharedTime.ElapsedMilliseconds * 1.0f)}x faster than CPU.");
+            Console.WriteLine($"GPU shared is {cpuTime.ElapsedMilliseconds / (readSharedTime.ElapsedMilliseconds * 1.0f)}x faster than CPU.");
             Console.WriteLine($"GPU full shared is {cpuTime.ElapsedMilliseconds / (fullSharedTime.ElapsedMilliseconds * 1.0f)}x faster than CPU.");
-            //Console.WriteLine($"GPU copy is {cpuTime.ElapsedMilliseconds / (copyTime.ElapsedMilliseconds * 1.0f)}x faster");
+            Console.WriteLine($"GPU copy is {cpuTime.ElapsedMilliseconds / (copyTime.ElapsedMilliseconds * 1.0f)}x faster");
 
             return;
         }
